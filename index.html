@@ -8379,9 +8379,10 @@ function saveHidModal(){
     updated_at: new Date().toISOString() };
   if(_hidEditId){
     const idx = hidrantes.findIndex(x=>x.id===_hidEditId);
-    if(idx>=0){ hidrantes[idx]={...hidrantes[idx],...row}; row.id=_hidEditId; }
+    if(idx>=0){ hidrantes[idx]={...hidrantes[idx],...row, area}; row.id=_hidEditId; }
   } else {
-    const newId = 'HD-'+String(Date.now()).slice(-6);
+    const areaPrefix = area === 'centro_clinico' ? 'HD-CC-' : 'HD-H-';
+    const newId = areaPrefix + String(Date.now()).slice(-6);
     row.id = newId;
     hidrantes.push({id:newId,...row});
   }
