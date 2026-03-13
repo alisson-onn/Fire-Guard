@@ -12,7 +12,7 @@
 // e atualiza em background quando há rede.
 // ══════════════════════════════════════════════════════════════
 
-const CACHE = 'fire-guard-v12';
+const CACHE = 'fire-guard-v13';
 
 // Assets obrigatórios pré-cacheados no install (app shell)
 const PRECACHE_URLS = [
