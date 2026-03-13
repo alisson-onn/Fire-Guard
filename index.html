@@ -7862,17 +7862,10 @@ async function fetchMangueirasSupabase(){
         updated_at:  r.updated_at  || null
       });
     });
-    // Merge: remoto sempre vence — substitui a lista completa por hidrante
-    // Mantém entradas locais que ainda não foram enviadas (sem updated_at remoto)
+    // Remoto sempre vence — substitui tudo no localStorage
     if(!MANGUEIRAS_CACHE) MANGUEIRAS_CACHE = mangLocalLoad();
     Object.entries(grouped).forEach(([hidId, remList])=>{
-      const localList = MANGUEIRAS_CACHE[hidId] || [];
-      // Indexa remoto por id
-      const remMap = {};
-      remList.forEach(m => remMap[m.id] = m);
-      // Mantém locais que não existem no remoto (ainda na fila de sync)
-      const onlyLocal = localList.filter(m => !remMap[m.id]);
-      MANGUEIRAS_CACHE[hidId] = [...remList, ...onlyLocal];
+      MANGUEIRAS_CACHE[hidId] = remList;
     });
     mangLocalSave(MANGUEIRAS_CACHE);
     MANGUEIRAS_CACHE = null; // força reload na próxima leitura
