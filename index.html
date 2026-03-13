@@ -8041,8 +8041,11 @@ async function renderHidrantes(){
     <div style="font-weight:600;font-size:14px">Carregando hidrantes do Supabase…</div>
   </div>`;
 
-  // Tenta buscar do Supabase; se falhar usa cache/localStorage
-  const fresh = await fetchHidrantesSupabase();
+  // Busca hidrantes E mangueiras do Supabase sempre que entrar na aba
+  const [fresh] = await Promise.all([
+    fetchHidrantesSupabase(),
+    fetchMangueirasSupabase().catch(()=>{})
+  ]);
   if(fresh) HIDRANTES_CACHE = fresh;
   else if(!HIDRANTES_CACHE) HIDRANTES_CACHE = hidLocalLoad() || [];
 
