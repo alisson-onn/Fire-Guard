@@ -2701,7 +2701,11 @@ async function init(){
       if(ap==='page-inspecao') renderInspAreaBtns();
     }).catch(()=>{});
 
-    fetchMangueirasSupabase().catch(()=>{});
+    fetchMangueirasSupabase().then(()=>{
+      // Re-renderiza hidrantes após carregar mangueiras do Supabase
+      const ap = document.querySelector('.page.active')?.id;
+      if(ap==='page-hidrantes') _renderHidrantesUI();
+    }).catch(()=>{});
   }
 
   const _si = document.getElementById('searchInput');
@@ -7149,10 +7153,8 @@ window.addEventListener('resize', fixMainContentTop);
         <label class="form-label">Local / Localização <span style="color:var(--danger)">*</span></label>
         <input class="form-input" id="hid-local" type="text" placeholder="Ex: Bloco 06 lado esquerdo externo">
       </div>
-      <div class="form-row">
-        <label class="form-label">Qtde de mangueiras</label>
-        <input class="form-input" id="hid-qtde" type="number" min="0" placeholder="Ex: 2 ou 4">
-      </div>
+      <!-- hid-qtde removido: quantidade calculada automaticamente pelas mangueiras cadastradas -->
+      <input type="hidden" id="hid-qtde">
       <div class="form-row">
         <label class="form-label">Observações</label>
         <input class="form-input" id="hid-obs" type="text" placeholder="Ex: mangueira danificada, lacre rompido…">
@@ -8213,24 +8215,26 @@ function _renderHidrantesUI(){
           <div style="font-weight:800;font-size:14px;color:var(--n900)">${h.nome||h.id}${inspIconHtml}
             <span style="font-weight:400;color:var(--n500);font-size:12px"> — ${h.local||'—'}</span>
           </div>
-          <div style="font-size:12px;color:var(--n500);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-            <span>🪣 ${h.qtde_mangueiras||'—'} mangueira(s)</span>
-            ${(()=>{
+          ${(()=>{
               const mangs = getMangueiras(h.id);
-              if(!mangs.length) return '<span style="font-size:11px;color:#9CA3AF;background:#F3F4F6;border-radius:6px;padding:1px 7px;font-weight:600">Sem mangueiras</span>';
               const mangInspData = getMangInsp(h.id);
-              const venc   = mangs.filter(m=>{ const d=mangInspData[m.id]?.dt_validade_nova||m.dt_validade; return mangStatusCalc(d).label==="Vencida"; }).length;
-              const avencer= mangs.filter(m=>{ const d=mangInspData[m.id]?.dt_validade_nova||m.dt_validade; return mangStatusCalc(d).label==="A Vencer"; }).length;
-              const ok     = mangs.filter(m=>{ const d=mangInspData[m.id]?.dt_validade_nova||m.dt_validade; return mangStatusCalc(d).label==="Válida"; }).length;
-              const semDt  = mangs.filter(m=>{ const d=mangInspData[m.id]?.dt_validade_nova||m.dt_validade; return !d; }).length;
-              let badge = '';
-              if(venc > 0)    badge += '<span style="font-size:11px;color:#B91C1C;background:#FEE2E2;border-radius:6px;padding:1px 7px;font-weight:700">⚠ '+venc+' vencida'+(venc>1?'s':'')+'</span>';
-              if(avencer > 0) badge += '<span style="font-size:11px;color:#D97706;background:#FEF3C7;border-radius:6px;padding:1px 7px;font-weight:700">⏳ '+avencer+' a vencer</span>';
-              if(venc===0 && avencer===0 && ok > 0) badge += '<span style="font-size:11px;color:#16A34A;background:#DCFCE7;border-radius:6px;padding:1px 7px;font-weight:700">✓ '+ok+' válida'+(ok>1?'s':'')+'</span>';
-              if(semDt > 0 && venc===0 && avencer===0 && ok===0) badge += '<span style="font-size:11px;color:#9CA3AF;background:#F3F4F6;border-radius:6px;padding:1px 7px;font-weight:600">— '+semDt+' sem data</span>';
-              return badge;
+              if(!mangs.length){
+                return '<div style="font-size:12px;color:#9CA3AF;margin-top:5px;display:flex;align-items:center;gap:6px"><span style="font-size:15px">🪣</span><span style="background:#F3F4F6;border-radius:6px;padding:2px 8px;font-weight:600;font-size:11px">Sem mangueiras cadastradas</span></div>';
+              }
+              const rows = mangs.map(m=>{
+                const dtAtual = mangInspData[m.id]?.dt_validade_nova || m.dt_validade;
+                const st = mangStatusCalc(dtAtual);
+                const dtFmt = dtAtual ? dtAtual.split('-').reverse().join('/') : '—';
+                return '<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #F1F5F9">'
+                  +'<span style="font-size:13px">🪣</span>'
+                  +'<span style="font-size:12px;font-weight:700;color:var(--n700);min-width:28px">Nº '+m.numero+'</span>'
+                  +'<span style="font-size:11px;color:var(--n400)">Validade:</span>'
+                  +'<span style="font-size:11px;font-weight:700;color:'+st.color+'">'+dtFmt+'</span>'
+                  +'<span style="font-size:10px;font-weight:700;background:'+st.bg+';color:'+st.color+';border-radius:5px;padding:1px 6px;margin-left:2px">'+st.label+'</span>'
+                  +'</div>';
+              }).join('');
+              return '<div style="margin-top:7px;border:1px solid #E2E8F0;border-radius:8px;padding:6px 8px;background:#FAFBFC">'+rows+'</div>';
             })()}
-          </div>
           ${h.obs?`<div style="font-size:11px;color:var(--n400);margin-top:2px">📝 ${h.obs}</div>`:''}
           ${inspObsHtml}
         </div>
@@ -8354,7 +8358,8 @@ function saveHidModal(){
   const area     = document.getElementById('hid-area').value || 'hospital';
   const nome     = document.getElementById('hid-nome').value.trim();
   const local    = document.getElementById('hid-local').value.trim();
-  const qtde     = parseInt(document.getElementById('hid-qtde').value)||null;
+  // qtde_mangueiras calculada automaticamente a partir das mangueiras cadastradas
+  const qtde     = _hidEditId ? (getMangueiras(_hidEditId).length || null) : null;
   const dtManut  = null;
   const dtVenc   = null;
   const valMeses = parseInt(document.getElementById('hid-validade').value)||12;
